@@ -37,14 +37,43 @@ set_fs_for()
 	esac
 }
 
-
-mount_()
+# original function
+mount_orig()
 {
 	get_partition_for $1
 	get_fs_for $1
 
 	if test "$fs" = "ext4"; then
 		e2fsck -p $partition
+		case $1 in
+			# don't care about data safety for cache
+			cache)	ext4_data_options=',data=writeback' ;;
+			# MoviNAND hardware support barrier, it allows to activate
+			# the journal option data=ordered and stay free from corruption
+			# even in worst cases
+			data)	ext4_data_options=',data=ordered,barrier=1' ;;
+			# dbdata device don't support barrier. Delayed allocations
+			# are unsafe and must be deactivated
+			dbdata)	ext4_data_options=',data=ordered,nodelalloc' ;;
+			*)	ext4_data_options=',data=journal' ;;
+		esac
+
+		# mount as Ext4
+		mount -t ext4 -o noatime,barrier=0$ext4_data_options$ext4_options $partition /$1
+	else
+		# mount as RFS with standard options
+		mount -t rfs -o nosuid,nodev,check=no $partition /$1
+	fi
+}
+
+# we no longer check the filesystem before mounting
+mount_()
+{
+	get_partition_for $1
+	get_fs_for $1
+
+	if test "$fs" = "ext4"; then
+		# e2fsck -p $partition
 		case $1 in
 			# don't care about data safety for cache
 			cache)	ext4_data_options=',data=writeback' ;;
@@ -156,8 +185,8 @@ load_stage()
 	return $retcode
 }
 
-
-detect_supported_model_and_setup_partitions()
+# the original function - replaced with function below
+detect_supported_model_and_setup_partitions_orig()
 {
 	# read the actual partition table
 	dd if=/dev/block/mmcblk0 of=/voodoo/tmp/partition_table bs=1 skip=446 count=64
@@ -195,6 +224,18 @@ detect_supported_model_and_setup_partitions()
 	fi
 }
 
+# now only compatible with "16GB-bigger-movinand" (for every other model)
+detect_supported_model_and_setup_partitions()
+{
+	model="16GB-bigger-movinand"
+	log "model detected: $model"
+	data_partition='/dev/block/mmcblk0p2'
+	sdcard_device='/dev/block/mmcblk0p1'
+	cache_partition='/dev/block/stl11'
+	echo "data_partition='$data_partition'" >> /voodoo/configs/partitions
+	echo "cache_partition='$cache_partition'" >> /voodoo/configs/partitions
+}
+
 
 detect_fs_on()
 {
@@ -222,13 +263,20 @@ detect_all_filesystems()
 	data_fs=`detect_fs_on data`
 }
 
-
-configure_from_kernel_version()
+# this is the original function, replaced with the one below
+configure_from_kernel_version_orig()
 {
 	if test "`cat /proc/version | cut -d'.' -f 3`" = 32; then
 		kversion="2.6.32"
 		ext4_options=",noauto_da_alloc"
 	fi
+}
+
+# we know we're using a kernel version 2.6.32
+configure_from_kernel_version()
+{
+	kversion="2.6.32"
+	ext4_options=",noauto_da_alloc"
 }
 
 

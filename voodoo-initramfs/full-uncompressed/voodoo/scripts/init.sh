@@ -79,6 +79,15 @@ else
 	log "option: lagfix enabled"
 fi
 
+# read if we should covert the filesystems
+if test "`find /sdcard/Voodoo/ -iname 'enable*conversion*'`" != "" ; then
+	conversion_enabled=1
+	log "option: conversion enabled"
+else
+	conversion_enabled=0
+	log "option: conversion disabled"
+fi
+
 
 # read if the /system conversion is enabled ot not
 if test "`find /sdcard/Voodoo/ -iname 'system*as*rfs*'`" != "" ; then
@@ -183,6 +192,8 @@ if in_recovery; then
 		rm -rf /cwm
 		umount /cache
 		log "stock recovery compatibility: make DBDATA: and CACHE: standard RFS"
+
+		# convert these filesystems regardless of the enable-conversion flag presence
 		convert cache rfs
 		convert dbdata rfs
 	fi
@@ -192,27 +203,38 @@ else
 	rm -rf /cwm
 fi
 
+# we only convert the filesystem if specifically requested to
+if test $conversion_enabled = 1; then
 
-if test $lagfix_enabled = 1; then
+	log "converting filesystems"
 
-	if ! in_recovery; then
-		convert cache ext4
-		convert dbdata ext4
-	fi
-	convert data ext4
-	if test $system_as_rfs = 0; then
-		convert system ext4
+	if test $lagfix_enabled = 1; then
+
+		if ! in_recovery; then
+			convert cache ext4
+			convert dbdata ext4
+		fi
+		convert data ext4
+		if test $system_as_rfs = 0; then
+			convert system ext4
+		else
+			convert system rfs
+		fi
+
+		letsgo
 	else
-		convert system rfs
-	fi
 
-	letsgo
+		convert cache rfs
+		convert dbdata rfs
+		convert data rfs
+		convert system rfs
+
+		letsgo
+	fi
 else
 
-	convert cache rfs
-	convert dbdata rfs
-	convert data rfs
-	convert system rfs
-	
+	log "skipping filesystem conversion"
 	letsgo
+
 fi
+
