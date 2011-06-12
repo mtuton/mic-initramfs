@@ -1,5 +1,8 @@
+initramfs directory used when compiling new kernels
+
+
 Initfamfs directory - initially generated using voodoo injector.
 
 Files were initially created using the voodoo_injector initramfs generation script. 
-I've been modifying the init.rc file directly and storing newly compiled kernel mobules here. 
+I've been modifying the init.rc file directly and storing newly compiled kernel modules here. 
 Compiling a new kernel will use the initramfs directory from this location. 
