@@ -37,43 +37,13 @@ set_fs_for()
 	esac
 }
 
-# original function
-mount_orig()
-{
-	get_partition_for $1
-	get_fs_for $1
-
-	if test "$fs" = "ext4"; then
-		e2fsck -p $partition
-		case $1 in
-			# don't care about data safety for cache
-			cache)	ext4_data_options=',data=writeback' ;;
-			# MoviNAND hardware support barrier, it allows to activate
-			# the journal option data=ordered and stay free from corruption
-			# even in worst cases
-			data)	ext4_data_options=',data=ordered,barrier=1' ;;
-			# dbdata device don't support barrier. Delayed allocations
-			# are unsafe and must be deactivated
-			dbdata)	ext4_data_options=',data=ordered,nodelalloc' ;;
-			*)	ext4_data_options=',data=journal' ;;
-		esac
-
-		# mount as Ext4
-		mount -t ext4 -o noatime,barrier=0$ext4_data_options$ext4_options $partition /$1
-	else
-		# mount as RFS with standard options
-		mount -t rfs -o nosuid,nodev,check=no $partition /$1
-	fi
-}
-
-# we no longer check the filesystem before mounting
 mount_()
 {
 	get_partition_for $1
 	get_fs_for $1
 
 	if test "$fs" = "ext4"; then
-		# e2fsck -p $partition
+		e2fsck -p $partition
 		case $1 in
 			# don't care about data safety for cache
 			cache)	ext4_data_options=',data=writeback' ;;
