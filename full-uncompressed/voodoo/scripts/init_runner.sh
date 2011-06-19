@@ -33,6 +33,7 @@ insmod /lib/modules/fsr.ko
 insmod /lib/modules/fsr_stl.ko
 insmod /lib/modules/rfs_glue.ko
 insmod /lib/modules/rfs_fat.ko
+insmod /lib/modules/rfs.ko
 
 
 # insmod Ext4 modules for injected initramfs without Ext4 driver builtin
